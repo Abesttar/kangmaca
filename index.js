@@ -101,6 +101,24 @@ app.get('/api/stats', (req, res) => {
     res.json({ totalPelajar: db.users.length, totalBuku: db.reports.length, totalPoin: db.users.reduce((acc, curr) => acc + curr.poin, 0) });
 });
 
+// Endpoint cek model Gemini yang tersedia (untuk debugging)
+app.get('/models', async (req, res) => {
+    try {
+        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${process.env.GEMINI_API_KEY}`);
+        const data = await response.json();
+        if (data.models) {
+            const geminiModels = data.models
+                .filter(m => m.name.includes('gemini') && m.supportedGenerationMethods?.includes('generateContent'))
+                .map(m => m.name.replace('models/', ''));
+            res.json({ available: geminiModels, current: 'gemini-3.8-flash' });
+        } else {
+            res.json({ error: data });
+        }
+    } catch (e) {
+        res.json({ error: e.message });
+    }
+});
+
 app.get('/api/reports', (req, res) => {
     const db = readDB();
     const enrichedReports = db.reports.slice(-5).reverse().map(r => {
@@ -338,7 +356,17 @@ Jawab dengan santai dan gunakan emoji yang pas. Mengerti?` }]
                     chatMemories.set(chatID, aiChatSession);
                 }
 
-                const result = await aiChatSession.sendMessage(teksMasuk);
+                // Batas waktu 15 detik agar tidak hang selamanya
+                const timeoutPromise = new Promise((_, reject) =>
+                    setTimeout(() => reject(new Error('Timeout: AI tidak merespons dalam 15 detik')), 15000)
+                );
+
+                console.log(`🤖 Mengirim ke Gemini: "${teksMasuk.substring(0, 50)}..."`);
+                const result = await Promise.race([
+                    aiChatSession.sendMessage(teksMasuk),
+                    timeoutPromise
+                ]);
+                console.log('✅ Gemini merespons!');
                 await reply(result.response.text());
 
             } catch (error) {
