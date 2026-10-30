@@ -78,8 +78,8 @@ app.get('/qr', async (req, res) => {
             <h2>✅ Bot Sudah Terhubung!</h2><p>WhatsApp bot Kang Maca sudah aktif dan berjalan.</p></body></html>`);
     }
     if (!latestQR) {
-        return res.send(`<!DOCTYPE html><html><head><meta charset="UTF-8"><meta http-equiv="refresh" content="3"><title>Kang Maca QR</title></head><body style="font-family:sans-serif;text-align:center;padding:40px;background:#0f172a;color:#fff">
-            <h2>⏳ QR Code sedang disiapkan...</h2><p>Halaman ini otomatis refresh dalam 3 detik.</p></body></html>`);
+        return res.send(`<!DOCTYPE html><html><head><meta charset="UTF-8"><meta http-equiv="refresh" content="1"><title>Kang Maca QR</title></head><body style="font-family:sans-serif;text-align:center;padding:40px;background:#0f172a;color:#fff">
+            <h2>⏳ QR Code sedang disiapkan...</h2><p>Otomatis refresh tiap 1 detik. Tunggu sebentar ya!</p><p style="color:#64748b;font-size:0.85rem">Jika lebih dari 30 detik belum muncul, cek Log Runtime di Hostinger.</p></body></html>`);
     }
     try {
         const qrImageUrl = await QRCode.toDataURL(latestQR, { width: 400, margin: 2 });
@@ -88,7 +88,6 @@ app.get('/qr', async (req, res) => {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="refresh" content="30">
     <title>Scan QR - Kang Maca Bot</title>
     <style>
         body { font-family: 'Segoe UI', sans-serif; background: #0f172a; color: #fff; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; margin: 0; }
@@ -257,12 +256,12 @@ async function startBot() {
     const { state, saveCreds } = await useMultiFileAuthState('./auth_info_baileys');
 
     const sock = makeWASocket({
-        version: [2, 3000, 1015901307], // versi statis, tidak perlu fetch
         auth: state,
         printQRInTerminal: false,
         logger: pino({ level: 'silent' }),
         connectTimeoutMs: 60000,
         defaultQueryTimeoutMs: 60000,
+        retryRequestDelayMs: 250,
     });
 
     waSocket = sock;
