@@ -167,7 +167,22 @@ app.post('/api/lapor', upload.single('fotoBukti'), (req, res) => {
 // ==========================================
 // 3. WHATSAPP BOT INTEGRATION
 // ==========================================
-const client = new Client({ authStrategy: new LocalAuth() });
+const client = new Client({
+    authStrategy: new LocalAuth(),
+    puppeteer: {
+        args: [
+            '--no-sandbox',
+            '--disable-setuid-sandbox',
+            '--disable-dev-shm-usage',
+            '--disable-accelerated-2d-canvas',
+            '--no-first-run',
+            '--no-zygote',
+            '--single-process',
+            '--disable-gpu'
+        ],
+        executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || undefined
+    }
+});
 
 client.on('qr', (qr) => qrcode.generate(qr, { small: true }));
 client.on('ready', () => {
