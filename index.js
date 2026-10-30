@@ -1,6 +1,6 @@
 require('dotenv').config();
 const { default: makeWASocket, useMultiFileAuthState, DisconnectReason, fetchLatestBaileysVersion } = require('@whiskeysockets/baileys');
-const qrcode = require('qrcode-terminal');
+const QRCode = require('qrcode');
 const express = require('express');
 const multer = require('multer');
 const fs = require('fs');
@@ -18,6 +18,8 @@ const chatMemories = new Map();
 // ==========================================
 // 2. SETUP WEB SERVER & DATABASE LOKAL
 // ==========================================
+let latestQR = null;      // simpan QR string terbaru
+let botConnected = false;  // status koneksi bot
 const app = express();
 const port = process.env.PORT || 3000;
 
@@ -48,6 +50,50 @@ function getBadge(poin) {
     if (poin >= 50)  return { badge: "Reader 📚", warna: "#10b981" };
     return { badge: "Beginner 🌱", warna: "#64748b" };
 }
+
+// Endpoint QR Code — buka di browser untuk scan WhatsApp
+app.get('/qr', async (req, res) => {
+    if (botConnected) {
+        return res.send(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Kang Maca Bot</title></head><body style="font-family:sans-serif;text-align:center;padding:40px;background:#0f172a;color:#fff">
+            <h2>✅ Bot Sudah Terhubung!</h2><p>WhatsApp bot Kang Maca sudah aktif dan berjalan.</p></body></html>`);
+    }
+    if (!latestQR) {
+        return res.send(`<!DOCTYPE html><html><head><meta charset="UTF-8"><meta http-equiv="refresh" content="3"><title>Kang Maca QR</title></head><body style="font-family:sans-serif;text-align:center;padding:40px;background:#0f172a;color:#fff">
+            <h2>⏳ QR Code sedang disiapkan...</h2><p>Halaman ini otomatis refresh dalam 3 detik.</p></body></html>`);
+    }
+    try {
+        const qrImageUrl = await QRCode.toDataURL(latestQR, { width: 400, margin: 2 });
+        res.send(`<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="refresh" content="30">
+    <title>Scan QR - Kang Maca Bot</title>
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; background: #0f172a; color: #fff; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; margin: 0; }
+        .card { background: #1e293b; border-radius: 20px; padding: 40px; box-shadow: 0 20px 60px rgba(0,0,0,0.5); text-align: center; max-width: 460px; }
+        h1 { font-size: 1.8rem; margin-bottom: 8px; }
+        p { color: #94a3b8; margin-bottom: 24px; }
+        img { border-radius: 12px; border: 4px solid #22d3ee; width: 320px; height: 320px; }
+        .badge { background: #0ea5e9; color: #fff; padding: 6px 16px; border-radius: 999px; font-size: 0.85rem; margin-top: 20px; display: inline-block; }
+        .step { background: #0f172a; border-radius: 10px; padding: 12px 16px; margin-top: 16px; text-align: left; font-size: 0.9rem; color: #cbd5e1; }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <h1>📱 Kang Maca Bot</h1>
+        <p>Scan QR Code ini dengan WhatsApp kamu</p>
+        <img src="${qrImageUrl}" alt="QR Code WhatsApp" />
+        <div class="step">1️⃣ Buka WhatsApp di HP kamu<br>2️⃣ Ketuk ⋮ → Perangkat Tertaut<br>3️⃣ Ketuk "Tautkan Perangkat"<br>4️⃣ Scan QR di atas</div>
+        <div class="badge">⏱ QR otomatis refresh tiap 30 detik</div>
+    </div>
+</body>
+</html>`);
+    } catch (e) {
+        res.status(500).send('Error generating QR');
+    }
+});
 
 app.get('/api/leaderboard', (req, res) => res.json(readDB().users.sort((a, b) => b.poin - a.poin)));
 app.get('/api/stats', (req, res) => {
@@ -182,25 +228,30 @@ async function startBot() {
 
     waSocket = sock;
 
-    // Tampilkan QR Code di terminal
+    // Handle status koneksi & QR
     sock.ev.on('connection.update', (update) => {
         const { connection, lastDisconnect, qr } = update;
 
         if (qr) {
-            console.log('\n📱 Scan QR Code ini dengan WhatsApp kamu:');
-            qrcode.generate(qr, { small: true });
+            latestQR = qr;      // simpan QR ke memori
+            botConnected = false;
+            console.log('📱 QR siap! Buka URL website kamu + /qr untuk scan. Contoh: https://sienna-donkey-164097.hostingersite.com/qr');
         }
 
         if (connection === 'close') {
+            botConnected = false;
+            latestQR = null;
             const shouldReconnect = lastDisconnect?.error?.output?.statusCode !== DisconnectReason.loggedOut;
             console.log('Koneksi terputus, reconnecting:', shouldReconnect);
             if (shouldReconnect) {
-                setTimeout(startBot, 3000); // reconnect setelah 3 detik
+                setTimeout(startBot, 3000);
             }
         }
 
         if (connection === 'open') {
-            console.log('✅ BOT KANG MACA & WEB SERVER AKTIF BERSAMAAN!');
+            botConnected = true;
+            latestQR = null;    // hapus QR setelah login
+            console.log('✅ BOT KANG MACA AKTIF! WhatsApp berhasil terhubung.');
             startReminderJob(sock);
         }
     });
