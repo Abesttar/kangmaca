@@ -18,7 +18,7 @@ const chatMemories = new Map();
 // 2. SETUP WEB SERVER & DATABASE LOKAL
 // ==========================================
 const app = express();
-const port = 3000;
+const port = process.env.PORT || 3000;
 
 const storage = multer.diskStorage({
     destination: (req, file, cb) => {
