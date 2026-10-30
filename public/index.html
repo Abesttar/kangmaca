@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kang Maca Quest | Dashboard Literasi Modern</title>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-main: #0b0f19;
+            --card-bg: rgba(30, 41, 59, 0.7);
+            --accent-green: #10b981;
+            --accent-blue: #6366f1;
+            --accent-pink: #ec4899;
+            --text-muted: #94a3b8;
+            --border-color: rgba(255, 255, 255, 0.1);
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background: radial-gradient(circle at top left, #1e1b4b, #0b0f19 50%);
+            color: #f8fafc;
+            min-height: 100vh;
+            padding: 2rem 1rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .header { text-align: center; margin-bottom: 2.5rem; max-width: 700px; }
+        .header h1 { font-size: 2.5rem; font-weight: 800; background: linear-gradient(135deg, #10b981, #6366f1); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin-bottom: 0.5rem; }
+        .header p { color: var(--text-muted); font-size: 1.05rem; }
+        .container { width: 100%; max-width: 900px; }
+
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 1rem; margin-bottom: 2rem; }
+        .stat-card { background: var(--card-bg); backdrop-filter: blur(12px); border: 1px solid var(--border-color); border-radius: 16px; padding: 1.5rem; text-align: center; box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37); }
+        .stat-card h4 { font-size: 0.85rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 0.5rem; }
+        .stat-card .val { font-size: 2rem; font-weight: 800; color: #fff; }
+
+        .card { background: var(--card-bg); backdrop-filter: blur(12px); border: 1px solid var(--border-color); border-radius: 20px; padding: 2rem; margin-bottom: 2rem; box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37); }
+        .card h3 { font-size: 1.3rem; margin-bottom: 1.2rem; display: flex; align-items: center; gap: 0.5rem; }
+
+        /* Tab Switcher untuk Login / Register */
+        .tab-nav { display: flex; gap: 0.5rem; margin-bottom: 1.5rem; background: rgba(15, 23, 42, 0.8); padding: 0.3rem; border-radius: 12px; border: 1px solid var(--border-color); }
+        .tab-btn { flex: 1; padding: 0.7rem; text-align: center; background: transparent; border: none; color: var(--text-muted); font-weight: 700; border-radius: 8px; cursor: pointer; transition: all 0.3s ease; }
+        .tab-btn.active { background: var(--accent-blue); color: #fff; }
+
+        input, textarea { width: 100%; padding: 0.9rem; margin-top: 0.4rem; margin-bottom: 1rem; border-radius: 10px; border: 1px solid var(--border-color); background: rgba(15, 23, 42, 0.8); color: #fff; font-family: inherit; }
+        input:focus, textarea:focus { outline: none; border-color: var(--accent-green); }
+
+        .btn { background: linear-gradient(135deg, #10b981, #059669); color: white; border: none; padding: 0.9rem 1.5rem; border-radius: 10px; font-weight: 700; cursor: pointer; width: 100%; font-size: 1rem; transition: all 0.3s ease; }
+        .btn:hover { opacity: 0.9; transform: translateY(-2px); }
+
+        .search-box { margin-bottom: 1rem; }
+        .table-responsive { overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; text-align: left; }
+        th, td { padding: 1.1rem; border-bottom: 1px solid var(--border-color); }
+        th { background: rgba(15, 23, 42, 0.6); color: var(--text-muted); font-size: 0.85rem; text-transform: uppercase; }
+        tr:hover { background: rgba(255, 255, 255, 0.03); }
+        .rank { font-weight: 800; font-size: 1.2rem; text-align: center; }
+        .poin { font-weight: 800; color: var(--accent-green); }
+        .badge-pill { padding: 0.3rem 0.8rem; border-radius: 20px; font-size: 0.8rem; font-weight: 700; color: #fff; }
+
+        /* Perbaikan Tampilan Feed Laporan */
+        .feed-item { background: rgba(15, 23, 42, 0.6); border-radius: 12px; padding: 1.2rem; margin-bottom: 1rem; border-left: 4px solid var(--accent-green); }
+        .feed-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.4rem; }
+        .feed-item h5 { font-size: 1.05rem; color: #fff; }
+        .feed-school { font-size: 0.8rem; color: var(--text-muted); background: rgba(255,255,255,0.05); padding: 0.2rem 0.6rem; border-radius: 6px; }
+        .feed-item p { font-size: 0.9rem; color: #cbd5e1; font-style: italic; margin-top: 0.5rem; line-height: 1.4; }
+
+        .guide-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 0.8rem; margin-top: 1rem; }
+        .guide-card { background: rgba(15, 23, 42, 0.5); padding: 1rem; border-radius: 10px; text-align: center; font-size: 0.85rem; }
+
+        .hidden { display: none; }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <h1>🏆 Kang Maca Quest 🏆</h1>
+        <p>Sistem Leaderboard & Gamifikasi Literasi Pelajar Jawa Barat</p>
+    </div>
+
+    <div class="container">
+        
+        <!-- Stats Counter -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <h4>Total Pelajar</h4>
+                <div class="val" id="stat-pelajar">0</div>
+            </div>
+            <div class="stat-card">
+                <h4>Buku Tuntas Dibaca</h4>
+                <div class="val" id="stat-buku" style="color: var(--accent-green);">0</div>
+            </div>
+            <div class="stat-card">
+                <h4>Poin Terkumpul</h4>
+                <div class="val" id="stat-poin" style="color: var(--accent-pink);">0 XP</div>
+            </div>
+        </div>
+
+        <!-- Auth Section (Terpisah Tab Login & Register) -->
+        <div id="auth-section" class="card">
+            <div class="tab-nav">
+                <button class="tab-btn active" id="btn-tab-login" onclick="switchTab('login')">Masuk (Login)</button>
+                <button class="tab-btn" id="btn-tab-reg" onclick="switchTab('register')">Daftar Akun Baru</button>
+            </div>
+
+            <!-- Form Login -->
+            <div id="form-login">
+                <h3>🔐 Masuk ke Akun Anda</h3>
+                <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 1rem;">Masukkan nomor WhatsApp dan PIN yang telah terdaftar.</p>
+                <input type="text" id="login-wa" placeholder="Nomor WhatsApp (misal: 081234567890)" required>
+                <input type="password" id="login-pin" placeholder="PIN Keamanan" required>
+                <button class="btn" onclick="submitLogin()">Masuk Sekarang</button>
+            </div>
+
+            <!-- Form Register -->
+            <div id="form-register" class="hidden">
+                <h3>📝 Pendaftaran Pelajar Baru</h3>
+                <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 1rem;">Lengkapi data di bawah ini untuk membuat akun baru.</p>
+                <input type="text" id="reg-nama" placeholder="Nama Lengkap" required>
+                <input type="text" id="reg-sekolah" placeholder="Asal Sekolah (misal: SMAN 1 Sukabumi)" required>
+                <input type="text" id="reg-wa" placeholder="Nomor WhatsApp (misal: 081234567890)" required>
+                <input type="password" id="reg-pin" placeholder="Buat PIN Keamanan (Contoh: 12345)" required>
+                <button class="btn" style="background: linear-gradient(135deg, #6366f1, #4f46e5);" onclick="submitRegister()">Daftar Akun</button>
+            </div>
+        </div>
+
+        <!-- User Profile Card -->
+        <div id="user-profile" class="card hidden">
+            <h3>Selamat Datang, <span id="user-name-disp" style="color: var(--accent-green);"></span>! 👋</h3>
+            <p style="margin-bottom: 1rem;">Poin Kamu: <b id="user-poin-disp" style="color: #fbbf24;">0 XP</b> | Level Badge: <span id="user-badge-disp" class="badge-pill"></span></p>
+            <button class="btn" style="background: linear-gradient(135deg, #6366f1, #4f46e5);" onclick="toggleForm()">+ Form Lapor Baca Buku</button>
+            <button class="btn" style="background: #ef4444; margin-top: 10px;" onclick="logout()">Keluar Akun</button>
+        </div>
+
+        <!-- Form Lapor Baca -->
+        <div id="form-lapor" class="card hidden">
+            <h3>Form Lapor Baca Buku</h3>
+            <form id="laporForm" onsubmit="submitLaporan(event)">
+                <input type="text" id="judul" placeholder="Judul Buku" required>
+                <input type="text" id="penulis" placeholder="Penulis Buku" required>
+                <textarea id="resume" name="resume" minlength="150" placeholder="Tulis ringkasan buku minimal 150 karakter..." required></textarea>
+                <label style="font-size: 0.85rem; color: var(--text-muted); display: block; margin-top: 0.5rem;">Upload Bukti Foto / Screenshot E-Book:</label>
+                <input type="file" id="fotoBukti" accept="image/*" required>
+                <button type="submit" class="btn">Kirim Laporan (+50 XP)</button>
+            </form>
+        </div>
+
+        <!-- Leaderboard -->
+        <div class="card">
+            <h3>📊 Klasemen Pahlawan Literasi</h3>
+            <div class="search-box">
+                <input type="text" id="searchInput" onkeyup="filterLeaderboard()" placeholder="Cari nama siswa atau asal sekolah...">
+            </div>
+            <div class="table-responsive">
+                <table>
+                    <thead>
+                        <tr>
+                            <th style="text-align: center;">Rank</th>
+                            <th>Nama Pelajar</th>
+                            <th>Sekolah</th>
+                            <th>Poin</th>
+                            <th>Level Badge</th>
+                        </tr>
+                    </thead>
+                    <tbody id="leaderboard-data"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Recent Activity Feed (Diperbaiki Tampilannya) -->
+        <div class="card">
+            <h3>🔥 Laporan Bacaan Terbaru</h3>
+            <div id="feed-container">
+                <p style="color: var(--text-muted); font-size: 0.9rem;">Belum ada aktivitas laporan terbaru.</p>
+            </div>
+        </div>
+
+        <!-- Tier Badge Info -->
+        <div class="card">
+            <h3>🎖️ Panduan Level Badge</h3>
+            <div class="guide-grid">
+                <div class="guide-card" style="border-top: 3px solid #64748b;">
+                    <b>Beginner</b><br><span style="color:var(--text-muted);">0 - 49 XP</span>
+                </div>
+                <div class="guide-card" style="border-top: 3px solid #10b981;">
+                    <b>Reader</b><br><span style="color:var(--text-muted);">50 - 149 XP</span>
+                </div>
+                <div class="guide-card" style="border-top: 3px solid #3b82f6;">
+                    <b>Scholar</b><br><span style="color:var(--text-muted);">150 - 249 XP</span>
+                </div>
+                <div class="guide-card" style="border-top: 3px solid #ec4899;">
+                    <b>Master</b><br><span style="color:var(--text-muted);">250 - 499 XP</span>
+                </div>
+                <div class="guide-card" style="border-top: 3px solid #8b5cf6;">
+                    <b>Legend</b><br><span style="color:var(--text-muted);">500+ XP</span>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        let currentUser = null;
+        let fullData = [];
+
+        window.onload = () => {
+            const savedUser = localStorage.getItem('userMaca');
+            if (savedUser) {
+                currentUser = JSON.parse(savedUser);
+                updateUI();
+            }
+            loadStats();
+            loadLeaderboard();
+            loadFeed();
+        };
+
+        // Fungsi Tab Switcher Login / Register
+        function switchTab(tab) {
+            const loginForm = document.getElementById('form-login');
+            const regForm = document.getElementById('form-register');
+            const loginBtn = document.getElementById('btn-tab-login');
+            const regBtn = document.getElementById('btn-tab-reg');
+
+            if (tab === 'login') {
+                loginForm.classList.remove('hidden');
+                regForm.classList.add('hidden');
+                loginBtn.classList.add('active');
+                regBtn.classList.remove('active');
+            } else {
+                loginForm.classList.add('hidden');
+                regForm.classList.remove('hidden');
+                loginBtn.classList.remove('active');
+                regBtn.classList.add('active');
+            }
+        }
+
+        function loadStats() {
+            fetch('/api/stats').then(res => res.json()).then(d => {
+                document.getElementById('stat-pelajar').innerText = d.totalPelajar;
+                document.getElementById('stat-buku').innerText = d.totalBuku;
+                document.getElementById('stat-poin').innerText = d.totalPoin + ' XP';
+            });
+        }
+
+        function loadFeed() {
+            fetch('/api/reports').then(res => res.json()).then(reports => {
+                const container = document.getElementById('feed-container');
+                if (reports.length === 0) return;
+                container.innerHTML = '';
+                reports.forEach(r => {
+                    container.innerHTML += `
+                        <div class="feed-item">
+                            <div class="feed-header">
+                                <h5>📖 <span style="color: var(--accent-green);">${r.judul}</span></h5>
+                                <span class="feed-school">${r.sekolah}</span>
+                            </div>
+                            <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.4rem;">Oleh: <b>${r.namaUser}</b></p>
+                            <p>"${r.resume}"</p>
+                        </div>
+                    `;
+                });
+            });
+        }
+
+        function loadLeaderboard() {
+            fetch('/api/leaderboard').then(res => res.json()).then(data => {
+                fullData = data;
+                renderTable(data);
+            });
+        }
+
+        function renderTable(data) {
+            const tbody = document.getElementById('leaderboard-data');
+            tbody.innerHTML = '';
+            data.forEach((item, index) => {
+                let rank = index + 1;
+                if (index === 0) rank = '🥇'; else if (index === 1) rank = '🥈'; else if (index === 2) rank = '🥉';
+
+                tbody.innerHTML += `
+                    <tr>
+                        <td class="rank">${rank}</td>
+                        <td><b>${item.nama}</b></td>
+                        <td style="color: var(--text-muted);">${item.sekolah}</td>
+                        <td class="poin">${item.poin} XP</td>
+                        <td><span class="badge-pill" style="background:${item.warnaBadge}">${item.badge}</span></td>
+                    </tr>
+                `;
+            });
+        }
+
+        function filterLeaderboard() {
+            const query = document.getElementById('searchInput').value.toLowerCase();
+            const filtered = fullData.filter(item => item.nama.toLowerCase().includes(query) || item.sekolah.toLowerCase().includes(query));
+            renderTable(filtered);
+        }
+
+        // Fungsi Register Baru
+        function submitRegister() {
+            const nama = document.getElementById('reg-nama').value;
+            const sekolah = document.getElementById('reg-sekolah').value;
+            const noWA = document.getElementById('reg-wa').value;
+            const pin = document.getElementById('reg-pin').value;
+
+            if (!nama || !sekolah || !noWA || !pin) return alert('Lengkapi semua data pendaftaran!');
+
+            fetch('/api/register', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ nama, sekolah, noWA, pin })
+            })
+            .then(res => res.json())
+            .then(res => {
+                if (res.success) {
+                    currentUser = res.user;
+                    localStorage.setItem('userMaca', JSON.stringify(currentUser));
+                    updateUI();
+                    alert(res.message);
+                } else {
+                    alert(res.message);
+                }
+            }).catch(err => alert("Terjadi kesalahan server!"));
+        }
+
+        // Fungsi Login Tersendiri
+        function submitLogin() {
+            const noWA = document.getElementById('login-wa').value;
+            const pin = document.getElementById('login-pin').value;
+
+            if (!noWA || !pin) return alert('Masukkan nomor WhatsApp dan PIN!');
+
+            fetch('/api/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ noWA, pin })
+            })
+            .then(res => res.json())
+            .then(res => {
+                if (res.success) {
+                    currentUser = res.user;
+                    localStorage.setItem('userMaca', JSON.stringify(currentUser));
+                    updateUI();
+                    alert(res.message);
+                } else {
+                    alert(res.message);
+                }
+            }).catch(err => alert("Terjadi kesalahan server!"));
+        }
+
+        function logout() {
+            localStorage.removeItem('userMaca');
+            currentUser = null;
+            document.getElementById('auth-section').classList.remove('hidden');
+            document.getElementById('user-profile').classList.add('hidden');
+            document.getElementById('form-lapor').classList.add('hidden');
+            document.getElementById('login-wa').value = '';
+            document.getElementById('login-pin').value = '';
+            switchTab('login');
+        }
+
+        function updateUI() {
+            document.getElementById('auth-section').classList.add('hidden');
+            document.getElementById('user-profile').classList.remove('hidden');
+            document.getElementById('user-name-disp').innerText = currentUser.nama;
+            document.getElementById('user-poin-disp').innerText = currentUser.poin + ' XP';
+            
+            const badgeElem = document.getElementById('user-badge-disp');
+            badgeElem.innerText = currentUser.badge;
+            badgeElem.style.background = currentUser.warnaBadge;
+            loadLeaderboard();
+            loadStats();
+            loadFeed();
+        }
+
+        function toggleForm() {
+            document.getElementById('form-lapor').classList.toggle('hidden');
+        }
+
+        function submitLaporan(e) {
+            e.preventDefault();
+            const formData = new FormData();
+            formData.append('userId', currentUser.id);
+            formData.append('judul', document.getElementById('judul').value);
+            formData.append('penulis', document.getElementById('penulis').value);
+            formData.append('resume', document.getElementById('resume').value);
+            formData.append('fotoBukti', document.getElementById('fotoBukti').files[0]);
+
+            fetch('/api/lapor', {
+                method: 'POST',
+                body: formData
+            })
+            .then(res => res.json())
+            .then(res => {
+                if (res.success) {
+                    alert('Laporan Berhasil! Poin kamu bertambah +50 XP 🎉');
+                    currentUser = res.user;
+                    localStorage.setItem('userMaca', JSON.stringify(currentUser));
+                    document.getElementById('laporForm').reset();
+                    toggleForm();
+                    updateUI();
+                } else {
+                    alert(res.message); 
+                }
+            })
+            .catch(err => alert('Terjadi kesalahan jaringan.'));
+        }
+    </script>
+</body>
+</html>
