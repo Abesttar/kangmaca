@@ -5,15 +5,34 @@ const express = require('express');
 const multer = require('multer');
 const fs = require('fs');
 const path = require('path');
-const { GoogleGenerativeAI } = require('@google/generative-ai');
-const pino = require('pino');
+const GEMINI_MODEL = 'gemini-3.8-flash';
+const chatMemories = new Map(); // { chatID: [ {role, parts}, ... ] }
 
-// ==========================================
-// 1. SETUP GEMINI AI
-// ==========================================
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-const model = genAI.getGenerativeModel({ model: "gemini-3.8-flash" });
-const chatMemories = new Map();
+// Helper: panggil Gemini API langsung via fetch (bukan SDK)
+async function callGemini(history, userMessage) {
+    const apiKey = process.env.GEMINI_API_KEY;
+    const contents = [
+        ...history,
+        { role: 'user', parts: [{ text: userMessage }] }
+    ];
+    const response = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${apiKey}`,
+        {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            signal: AbortSignal.timeout(20000), // timeout 20 detik
+            body: JSON.stringify({ contents })
+        }
+    );
+    if (!response.ok) {
+        const err = await response.json();
+        throw new Error(`Gemini error ${response.status}: ${JSON.stringify(err)}`);
+    }
+    const data = await response.json();
+    const replyText = data.candidates?.[0]?.content?.parts?.[0]?.text;
+    if (!replyText) throw new Error('Gemini tidak mengembalikan teks');
+    return replyText;
+}
 
 // ==========================================
 // 2. SETUP WEB SERVER & DATABASE LOKAL
@@ -330,44 +349,41 @@ async function startBot() {
                 // Tampilkan indikator mengetik
                 await sock.sendPresenceUpdate('composing', chatID);
 
-                let aiChatSession = chatMemories.get(chatID);
-                if (!aiChatSession) {
-                    aiChatSession = model.startChat({
-                        history: [
-                            {
-                                role: "user",
-                                parts: [{ text: `Halo, mulai sekarang kamu adalah 'Kang Maca', asisten literasi dari Jawa Barat yang ramah dan bergaya Gen-Z. 
-                        
+                // Ambil atau buat history percakapan
+                let history = chatMemories.get(chatID);
+                if (!history) {
+                    // System prompt sebagai pesan pertama
+                    history = [
+                        {
+                            role: 'user',
+                            parts: [{ text: `Halo, mulai sekarang kamu adalah 'Kang Maca', asisten literasi dari Jawa Barat yang ramah dan bergaya Gen-Z.
+
 ATURAN WAJIB (SOP):
 1. Dengarkan curhatan saya, validasi perasaan saya, dan berikan tanggapan yang hangat serta suportif.
 2. Rekomendasikan 2-3 buku populer yang cocok dengan perasaanku.
-3. ATURAN LINK E-BOOK: Jangan pernah menyuruh download aplikasi! Setiap buku wajib disertai tautan web lengkap dengan format persis seperti ini: https://bacagratis.com/search?q=[judul-buku-tanpa-spasi]. 
-4. FORMAT PENULISAN: Setiap judul buku dan link-nya HARUS berada di baris baru (Enter dua kali) agar tidak menyatu dengan kalimat lain. Gunakan format list angka 1., 2., 3.
-5. Selalu akhiri pesan dengan paragraf baru persis berbunyi: "> Kalau udah selesai baca bukunya, jangan lupa ketik */lapor* ya biar dapat poin literasi!". 
+3. ATURAN LINK E-BOOK: Jangan pernah menyuruh download aplikasi! Setiap buku wajib disertai tautan web lengkap dengan format persis seperti ini: https://bacagratis.com/search?q=[judul-buku-tanpa-spasi].
+4. FORMAT PENULISAN: Setiap judul buku dan link-nya HARUS berada di baris baru (Enter dua kali). Gunakan format list angka 1., 2., 3.
+5. Selalu akhiri pesan dengan: "> Kalau udah selesai baca bukunya, jangan lupa ketik */lapor* ya biar dapat poin literasi!".
 
 Jawab dengan santai dan gunakan emoji yang pas. Mengerti?` }]
-                            },
-                            {
-                                role: "model",
-                                parts: [{ text: "Siap, Sampurasun! Aku Kang Maca, siap dengerin curhatanmu dan ngasih rekomendasi e-book terbaik dari https://bacagratis.com/ buat nemenin harimu!\n\nJangan lupa ketik */lapor* ya kalau udah beres baca! 🚀📚" }]
-                            }
-                        ]
-                    });
-                    chatMemories.set(chatID, aiChatSession);
+                        },
+                        {
+                            role: 'model',
+                            parts: [{ text: 'Siap, Sampurasun! Aku Kang Maca, siap dengerin curhatanmu dan ngasih rekomendasi e-book terbaik dari https://bacagratis.com/ buat nemenin harimu!\n\nJangan lupa ketik */lapor* ya kalau udah beres baca! 🚀📚' }]
+                        }
+                    ];
+                    chatMemories.set(chatID, history);
                 }
 
-                // Batas waktu 15 detik agar tidak hang selamanya
-                const timeoutPromise = new Promise((_, reject) =>
-                    setTimeout(() => reject(new Error('Timeout: AI tidak merespons dalam 15 detik')), 15000)
-                );
-
                 console.log(`🤖 Mengirim ke Gemini: "${teksMasuk.substring(0, 50)}..."`);
-                const result = await Promise.race([
-                    aiChatSession.sendMessage(teksMasuk),
-                    timeoutPromise
-                ]);
+                const aiReply = await callGemini(history, teksMasuk);
                 console.log('✅ Gemini merespons!');
-                await reply(result.response.text());
+
+                // Simpan percakapan ke memori
+                history.push({ role: 'user', parts: [{ text: teksMasuk }] });
+                history.push({ role: 'model', parts: [{ text: aiReply }] });
+
+                await reply(aiReply);
 
             } catch (error) {
                 console.error("Error Sistem AI:", error);
