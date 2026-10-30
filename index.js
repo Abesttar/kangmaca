@@ -261,7 +261,7 @@ async function startBot() {
 
     // Handle pesan masuk
     sock.ev.on('messages.upsert', async ({ messages, type }) => {
-        if (type !== 'notify') return;
+        console.log(`📨 messages.upsert event: type=${type}, count=${messages.length}`);
 
         for (const message of messages) {
             // Abaikan pesan dari bot sendiri atau broadcast
@@ -269,7 +269,20 @@ async function startBot() {
             if (message.key.remoteJid === 'status@broadcast') continue;
 
             const chatID = message.key.remoteJid;
-            const teksMasuk = (message.message?.conversation || message.message?.extendedTextMessage?.text || '').trim().toLowerCase();
+
+            // Baca teks dari semua format pesan Baileys
+            const msg = message.message;
+            const teksMasuk = (
+                msg?.conversation ||
+                msg?.extendedTextMessage?.text ||
+                msg?.imageMessage?.caption ||
+                msg?.videoMessage?.caption ||
+                msg?.buttonsResponseMessage?.selectedDisplayText ||
+                msg?.listResponseMessage?.title ||
+                ''
+            ).trim();
+
+            console.log(`💬 Pesan dari ${chatID}: "${teksMasuk}" (type: ${type})`);
 
             if (!teksMasuk) continue;
 
@@ -278,18 +291,18 @@ async function startBot() {
                 await sock.sendMessage(chatID, { text }, { quoted: message });
             };
 
-            if (teksMasuk === '/lapor') {
+            if (teksMasuk.toLowerCase() === '/lapor') {
                 await reply(`Wih, mantap! 🎉\nLangsung aja klaim *50 Poin* kamu dengan isi form laporan di website resmi kita:\n🌐 ${process.env.APP_URL || 'https://kangmaca.up.railway.app'}\n\nKumpulkan poinnya dan jadilah Legend! 👑`);
                 continue;
             }
 
-            if (teksMasuk === '/reset') {
+            if (teksMasuk.toLowerCase() === '/reset') {
                 chatMemories.delete(chatID);
                 await reply('Sip, ingatan Akang tentang obrolan kita udah direset! Ada yang mau diceritain dari awal? ✌️');
                 continue;
             }
 
-            if (teksMasuk === '/demo-reminder') {
+            if (teksMasuk.toLowerCase() === '/demo-reminder') {
                 await reply(`Halo Sahabat Maca, Kang Maca kangen nih! 🥺\nUdah seminggu lebih kamu belum lapor bacaan. Lagi sibuk nugas atau butuh rekomendasi buku santai? Balas pesan ini aja ya! 📚✨\n\n_(Pesan ini adalah simulasi Notifikasi Proaktif 7-Hari)_`);
                 continue;
             }
