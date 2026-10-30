@@ -1,5 +1,6 @@
 require('dotenv').config();
-const { default: makeWASocket, useMultiFileAuthState, DisconnectReason, fetchLatestBaileysVersion } = require('@whiskeysockets/baileys');
+const { default: makeWASocket, useMultiFileAuthState, DisconnectReason } = require('@whiskeysockets/baileys');
+const pino = require('pino');
 const QRCode = require('qrcode');
 const express = require('express');
 const multer = require('multer');
@@ -254,13 +255,14 @@ let waSocket = null;
 
 async function startBot() {
     const { state, saveCreds } = await useMultiFileAuthState('./auth_info_baileys');
-    const { version } = await fetchLatestBaileysVersion();
 
     const sock = makeWASocket({
-        version,
+        version: [2, 3000, 1015901307], // versi statis, tidak perlu fetch
         auth: state,
-        printQRInTerminal: false, // kita handle sendiri
-        logger: pino({ level: 'silent' }), // matikan log bawaan
+        printQRInTerminal: false,
+        logger: pino({ level: 'silent' }),
+        connectTimeoutMs: 60000,
+        defaultQueryTimeoutMs: 60000,
     });
 
     waSocket = sock;
